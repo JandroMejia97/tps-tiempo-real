@@ -1,6 +1,6 @@
 /*
  * File:   main.c
- * Author: Alejandro Mejía
+ * Author: Alejandro Mej?a
  *
  * Created on 30 de agosto de 2022, 08:34 PM
  */
@@ -10,16 +10,11 @@
 
 #define _XTAL_FREQ 1000000UL // 1MHz
 
-uint8_t checkButton(uint8_t pin);
-static uint8_t pressed = 0;
-
-__interrupt() void manejador(void) {
-    if (pressed) {
-        RB4 = !RB4;
-        RB5 = !RB5;
-    }
+void interrupt manejador(void) {
+	RB4 = !RB4;
+	RB5 = !RB5;
     T0IF = 0;
-    TMR0 = 11;
+    TMR0 = 12;
 }
 
 int main(void) {
@@ -30,34 +25,18 @@ int main(void) {
     RB5 = 1;
     // RA0 y RA1 como entradas
     TRISA |= (1 << RA0) | (1 << RA1);
-
+	PSA = 0;
+	OPTION_REG = (OPTION_REG & 0b11111110) | 0b111;
+	T0CS = 0;
     while(1) {
-        if (!pressed) {
-            INTCON &= ~(1 << GIE);
-            pressed = checkButton(RA0);
-            if (!pressed) {
-                pressed = checkButton(RA1);
-            }
-            INTCON |= (1 << GIE);
-            
-            if (pressed) {
-                // Timer
-                PSA = 0;
-                OPTION_REG |= 0b111;
-                T0CS = 0;
-                INTCON = 0b10100000;
-                TMR0 = 11;
-            }
-        }
-    }
+		if ((PORTA & (1 << RA0)) == 0) {
+			__delay_ms(30);
+			if ((PORTA & (1 << RA0)) == 0){
+				RB4 = !RB4;
+				INTCON = 0b10100000;
+				TMR0 = 12;
+			}
+		}
+	}	
     return 0; 
-}
-
-uint8_t checkButton(uint8_t pin) {
-    if ((PORTA & (1 << pin)) == 0) {
-        
-        RB5 = 0;
-        return 1;
-    }
-    return 0;
 }
