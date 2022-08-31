@@ -13,13 +13,13 @@
 uint8_t checkButton(uint8_t pin);
 static uint8_t pressed = 0;
 
-void interrupt(void) {
+__interrupt() void manejador(void) {
     if (pressed) {
         RB4 = !RB4;
         RB5 = !RB5;
     }
     T0IF = 0;
-    TMR0 = 10;
+    TMR0 = 11;
 }
 
 int main(void) {
@@ -33,18 +33,20 @@ int main(void) {
 
     while(1) {
         if (!pressed) {
+            INTCON &= ~(1 << GIE);
             pressed = checkButton(RA0);
             if (!pressed) {
                 pressed = checkButton(RA1);
             }
+            INTCON |= (1 << GIE);
             
             if (pressed) {
                 // Timer
                 PSA = 0;
-                OPTION_REG = (OPTION_REG & 0b11111110) | 0b111;
+                OPTION_REG |= 0b111;
                 T0CS = 0;
                 INTCON = 0b10100000;
-                TMR0 = 10;
+                TMR0 = 11;
             }
         }
     }
@@ -53,9 +55,7 @@ int main(void) {
 
 uint8_t checkButton(uint8_t pin) {
     if ((PORTA & (1 << pin)) == 0) {
-        __delay_ms(10);
-        while ((PORTA & (1 << pin)) == 0);
-        __delay_ms(10);
+        
         RB5 = 0;
         return 1;
     }
